@@ -37,6 +37,7 @@ fieldset .hazard.end{margin:16px auto 0}
 .lab.plain{color:var(--text);letter-spacing:.5px;text-transform:none}
 .grow{flex:1;min-width:180px}
 input[type=text]{background:#fff;color:#111;border:1px solid #888;padding:4px 7px;font:500 14px "Chakra Petch",sans-serif;width:200px}
+input[type=number]{background:#fff;color:#111;border:1px solid #888;padding:4px 6px;font:600 15px "Chakra Petch",sans-serif;width:78px}
 input[type=range]{accent-color:var(--accent);width:100%}
 input[type=color]{width:52px;height:30px;border:2px solid #bbb;background:#fff;padding:1px;cursor:pointer}
 input[type=checkbox]{accent-color:var(--accent);width:16px;height:16px}
@@ -88,6 +89,7 @@ footer small{display:block;max-width:640px;margin:10px auto 0;font-weight:500;fo
   color:var(--text);padding:8px 14px;border-radius:6px;font-size:14px;opacity:0;transition:opacity .25s;pointer-events:none}
 .toast.show{opacity:1}
 @media (max-width:620px){
+  input[type=number]{font-size:16px}
   .wrap{padding:14px 10px 30px}
   .panel{padding:10px 10px 18px}
   fieldset{padding:6px 10px 14px;margin:12px 0 18px}
@@ -154,7 +156,7 @@ footer small{display:block;max-width:640px;margin:10px auto 0;font-weight:500;fo
     <fieldset>
       <legend>Requisition your gear</legend>
       <div class="hazard"></div>
-      <div class="row"><span class="lab">Level : <span id="levelOut">150</span></span><input type="range" id="level" min="1" max="300" value="150" style="width:240px"></div>
+      <div class="row"><label class="lab" for="levelOut">Level :</label><input type="number" id="levelOut" min="1" max="300" step="1" inputmode="numeric" value="150" aria-label="Level"><input type="range" id="level" min="1" max="300" value="150" style="width:240px" aria-label="Level slider"></div>
 
       <div class="row" style="margin-bottom:0"><span class="lab">Stratagems :</span><span class="hint" style="margin:0;font-size:13px;color:var(--muted)">pick up to 4 · click a slot on the card to empty it</span></div>
       <div id="stratGrid"></div>
@@ -251,7 +253,7 @@ footer small{display:block;max-width:640px;margin:10px auto 0;font-weight:500;fo
 </div>
 <div class="toast" id="toast"></div>
 
-<script id="locked">window.__LOCKED__={"icons":{},"built":"2026-10-24T15:10:14.492Z"};</script>
+<script id="locked">window.__LOCKED__={"icons":{},"built":"2026-10-24T15:13:56.695Z"};</script>
 <script src="icons.js"></script>
 <script id="app">
 (() => {
@@ -598,7 +600,12 @@ try {
 let saveT;
 function persist(){
   clearTimeout(saveT);
-  saveT = setTimeout(() => {
+  saveT = setTimeout(saveNow, 350);
+}
+window.addEventListener('pagehide', () => { clearTimeout(saveT); saveNow(); });
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden'){ clearTimeout(saveT); saveNow(); } });
+function saveNow(){
+  {
     try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
     catch(e){
       // Images can exceed storage; keep everything else.
@@ -609,7 +616,7 @@ function persist(){
         localStorage.setItem(STORE_KEY, JSON.stringify(lite));
       } catch(e2){}
     }
-  }, 350);
+  }
 }
 
 function buildRegistry(){
@@ -1100,7 +1107,17 @@ $('accentColor').addEventListener('input', e => {
 });
 $('name').addEventListener('input', e => { state.name = e.target.value; render(); persist(); });
 $('title').addEventListener('input', e => { state.title = e.target.value; render(); persist(); });
-$('level').addEventListener('input', e => { state.level = +e.target.value; $('levelOut').textContent = state.level; render(); persist(); });
+const clampLevel = v => Math.min(300, Math.max(1, Math.round(v)));
+$('level').addEventListener('input', e => { state.level = +e.target.value; $('levelOut').value = state.level; render(); persist(); });
+$('levelOut').addEventListener('input', e => {            // live while typing; empty or out-of-range waits for the user to finish
+  const v = parseInt(e.target.value, 10);
+  if (!isNaN(v) && v >= 1 && v <= 300){ state.level = v; $('level').value = v; render(); persist(); }
+});
+$('levelOut').addEventListener('change', e => {           // on Enter / leaving the box: snap to a valid level
+  const v = parseInt(e.target.value, 10);
+  state.level = isNaN(v) ? state.level : clampLevel(v);
+  e.target.value = state.level; $('level').value = state.level; render(); persist();
+});
 
 $('cgAdd').addEventListener('click', () => {
   const kind = $('cgSlot').value, name = $('cgName').value.trim(), code = $('cgCode').value.trim();
@@ -1166,7 +1183,7 @@ $('resetBtn').addEventListener('click', () => {
 
 function hydrateForm(){
   $('name').value = state.name; $('title').value = state.title;
-  $('level').value = state.level; $('levelOut').textContent = state.level;
+  $('level').value = state.level; $('levelOut').value = state.level;
   $('cardColor').value = state.cardColor; $('accentColor').value = state.accent; $('panelColor').value = state.panelColor || '#4a4a4a';
   document.documentElement.style.setProperty('--accent', state.accent);
   $('bgFit').checked = state.bg.fit; $('bgTile').checked = state.bg.tile; $('bgOpacity').value = Math.round(state.bg.opacity*100);
