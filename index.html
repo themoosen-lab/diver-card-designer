@@ -146,7 +146,7 @@ footer small{display:block;max-width:640px;margin:10px auto 0;font-weight:500;fo
       <div class="row"><span class="lab">Choose your diver :</span><input type="file" id="diverFile" accept="image/*"><button class="btn" type="button" data-clear="diver">Remove</button></div>
       <div class="row"><span class="lab">Adjust diver zoom :</span><input class="grow" type="range" id="diverZoom" min="100" max="400" value="100"></div>
       <div class="row"><span class="lab">Choose clan logo :</span><input type="file" id="clanFile" accept="image/*"><button class="btn" type="button" data-clear="clan">Remove</button></div>
-      <div class="row"><span class="lab">Adjust clan logo zoom :</span><input class="grow" type="range" id="clanZoom" min="100" max="400" value="100"></div>
+      <div class="row"><span class="lab">Adjust clan logo zoom :</span><input class="grow" type="range" id="clanZoom" min="25" max="400" value="100"></div>
       <p class="hint">[ Drag your avatar, diver and clan logo on the preview to reposition them. The mouse wheel zooms them too. ]</p>
       <div class="hazard end"></div>
     </fieldset>
@@ -251,7 +251,7 @@ footer small{display:block;max-width:640px;margin:10px auto 0;font-weight:500;fo
 </div>
 <div class="toast" id="toast"></div>
 
-<script id="locked">window.__LOCKED__={"icons":{},"built":"2026-10-24T14:38:25.642Z"};</script>
+<script id="locked">window.__LOCKED__={"icons":{},"built":"2026-10-24T15:10:14.492Z"};</script>
 <script src="icons.js"></script>
 <script id="app">
 (() => {
@@ -641,7 +641,7 @@ const deedIconSrc = (d, size=48) => ICON_OVR['deed:'+d.id] || BUILTIN_ICONS['dee
 const LAY = {
   avatar:{ x:24, y:24, w:138, h:130 },
   level:{ x:24, y:162, w:138, h:44 },
-  clan:{ x:36, y:216, w:114, h:114, round:true },
+  clan:{ x:24, y:214, w:138, h:124, contain:true, minZoom:.25 },
   diver:{ x:706, y:24, w:122, h:158 },
   textX:178, textR:690,
   stratX:178, slotY:131, slot:50, gap:8,
@@ -679,7 +679,7 @@ function shade(h, f){ const [r,g,b] = hexToRgb(h); const t = f<0?0:255, p = Math
 function drawFramedImage(c, key, fr){
   const st = state[key]; if (!st.src) return false;
   const im = IMG.get(st.src); if (!im || !im.complete || !im.naturalWidth) return false;
-  const fit = fr.round ? Math.min(fr.w/im.naturalWidth, fr.h/im.naturalHeight) : Math.max(fr.w/im.naturalWidth, fr.h/im.naturalHeight);
+  const fit = (fr.round || fr.contain) ? Math.min(fr.w/im.naturalWidth, fr.h/im.naturalHeight) : Math.max(fr.w/im.naturalWidth, fr.h/im.naturalHeight);
   const s = fit * st.zoom, dw = im.naturalWidth*s, dh = im.naturalHeight*s;
   c.save(); c.beginPath();
   if (fr.round) c.arc(fr.x+fr.w/2, fr.y+fr.h/2, fr.w/2, 0, Math.PI*2); else c.rect(fr.x, fr.y, fr.w, fr.h);
@@ -748,7 +748,7 @@ function drawCard(c, opts={}){
   const cl = LAY.clan;
   if (!drawFramedImage(c,'clan',cl)){
     c.save(); c.setLineDash([6,5]); c.strokeStyle = 'rgba(200,200,200,.45)'; c.lineWidth = 2;
-    c.beginPath(); c.arc(cl.x+cl.w/2, cl.y+cl.h/2, cl.w/2-3, 0, Math.PI*2); c.stroke(); c.restore();
+    c.beginPath(); c.arc(cl.x+cl.w/2, cl.y+cl.h/2, 54, 0, Math.PI*2); c.stroke(); c.restore();
     setFont(c, 600, 11); c.fillStyle = 'rgba(220,220,220,.55)';
     spacedText(c, 'CLAN LOGO', cl.x+cl.w/2, cl.y+cl.h/2+4, 2, 'center');
   }
@@ -942,7 +942,7 @@ canvas.addEventListener('wheel', e => {
   const h = hitAt(toLocal(e));
   if (!h || h.type !== 'frame' || !state[h.key].src) return;
   e.preventDefault();
-  const z = Math.min(4, Math.max(1, state[h.key].zoom * (e.deltaY < 0 ? 1.06 : 1/1.06)));
+  const z = Math.min(4, Math.max(LAY[h.key].minZoom || 1, state[h.key].zoom * (e.deltaY < 0 ? 1.06 : 1/1.06)));
   state[h.key].zoom = z; $(h.key+'Zoom').value = Math.round(z*100); render(); persist();
 }, { passive:false });
 
