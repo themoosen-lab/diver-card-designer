@@ -1,7 +1,7 @@
 /* Diver Card Designer: lets the site open as an app and keep working without internet.
    The page and the icon pack come from the internet whenever it's there (so updates and new icons show straight away),
    and from this saved copy when it isn't. Fonts are saved the first time they load. */
-const CACHE = 'diver-card-v1';
+const CACHE = 'diver-card-v2';
 const CORE = ['./', './index.html', './icons.js', './manifest.webmanifest', './app-192.png', './app-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
@@ -14,6 +14,7 @@ const save = (req, res) => { if (res && (res.ok || res.type === 'opaque')){ cons
 self.addEventListener('fetch', e => {
   const req = e.request; if (req.method !== 'GET') return;
   const url = new URL(req.url);
+  if (/\.mp4$/i.test(url.pathname)) return;   // the how-to video streams straight from the site (not saved for offline)
   if (url.origin === self.location.origin){
     // internet first, saved copy when offline
     e.respondWith(fetch(req).then(res => save(req, res)).catch(() =>
